@@ -29,4 +29,5 @@ struct SerialPort {
   }
 };
 
-extern SerialPort Serial;
+using HardwareSerial = SerialPort;
+extern HardwareSerial Serial;

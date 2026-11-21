@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Compose Arduino notice frames and inspect replies from the Smart Notice Board.">
+<title>Smart Notice Board Console</title>
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="app.mjs"></script>
+</head>
+<body>
+<header class="top"><div class="shell mast"><span class="brand"><span class="mark" aria-hidden="true">▤</span> Notice Board</span><a class="outline" href="https://wokwi.com/projects/481295697600552961" target="_blank" rel="noopener">Open Wokwi</a></div></header>
+<main class="shell">
+<section class="intro"><p class="eyebrow">ARDUINO UNO · DEVICE CONSOLE</p><h1>Smart Notice Board</h1><p>Compose a notice, send its frame in Wokwi, and inspect the Arduino’s reply.</p></section>
+<div class="grid">
+<section class="panel" aria-labelledby="compose-title">
+<h2 id="compose-title">Compose command</h2>
+<form id="composer">
+<label for="command">Command</label>
+<select id="command"><option value="ADD">Add or update notice</option><option value="PING">Ping board</option><option value="STATUS">Check notice count</option><option value="LIST">List notices</option><option value="DELETE">Delete notice</option></select>
+<div class="fields">
+<div id="id-field"><label for="notice-id">Notice ID</label><input id="notice-id" type="number" min="1" max="255" required value="3"></div>
+<div id="priority-field"><label for="priority">Priority</label><select id="priority"><option value="1">Low</option><option value="2" selected>Normal</option><option value="3">Urgent</option></select></div>
+<div id="ttl-field"><label for="ttl">TTL (minutes)</label><input id="ttl" type="number" min="0" max="1440" required value="10" aria-describedby="ttl-help"><small id="ttl-help">0 saves to EEPROM</small></div>
+</div>
+<div id="message-field"><label for="message">Notice text <span id="count">18 / 64</span></label><input id="message" maxlength="64" required value="Exam starts at 9AM" aria-describedby="message-help"><small id="message-help">Printable ASCII. Leave out the pipe and asterisk.</small></div>
+<button class="primary" type="submit">Generate frame</button>
+</form>
+</section>
+<div class="stack">
+<section class="panel device" aria-labelledby="preview-title"><div class="section-bar"><h2 id="preview-title">LCD preview</h2><span class="tag">Draft · 16 × 2</span></div><div class="lcd"><div id="lcd-title">ID:003  PRIO:2</div><div id="lcd-message">Exam starts at 9</div></div><button class="quiet" id="scroll" type="button">Next scroll step</button></section>
+<section class="panel" aria-labelledby="frame-title"><div class="section-bar"><h2 id="frame-title">Serial frame</h2><span class="tag">CRC-8/ATM · LF</span></div><pre id="frame" tabindex="0">Generate a frame to begin.</pre><div class="frame-actions"><button class="outline dark" type="button" id="copy" disabled>Copy frame</button><span id="copy-status" role="status"></span></div><p class="hint">Paste into the Wokwi Serial Monitor and press Enter.</p></section>
+</div>
+<section class="panel reply" aria-labelledby="reply-title"><h2 id="reply-title">Inspect board reply</h2><form id="reply-form"><label for="reply">Paste Serial Monitor output</label><textarea id="reply" rows="3" placeholder="ACK|1|SAVED" required></textarea><button class="outline dark" type="submit">Inspect reply</button></form><div id="result" class="result" role="status">Generate a frame, then paste the Arduino’s reply here.</div></section>
+</div>
+</main>
+</body></html>

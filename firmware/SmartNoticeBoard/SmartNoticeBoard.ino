@@ -1,6 +1,8 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#ifndef NOTICE_BOARD_SIMULATION
 #include <SoftwareSerial.h>
+#endif
 #include <string.h>
 #include "NoticeStore.h"
 #include "Crc8.h"
@@ -10,7 +12,11 @@ constexpr uint8_t BT_TX = 11; // UNO D11 -> divider -> HC-05 RX
 constexpr uint32_t PAGE_INTERVAL = 4000;
 constexpr uint32_t SCROLL_INTERVAL = 300;
 constexpr uint8_t FRAME_SIZE = 108;
-SoftwareSerial bluetooth(BT_RX, BT_TX);
+#ifdef NOTICE_BOARD_SIMULATION
+HardwareSerial& commandPort = Serial;
+#else
+SoftwareSerial commandPort(BT_RX, BT_TX);
+#endif
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 NoticeStore store;
 char line[FRAME_SIZE];
@@ -46,10 +52,10 @@ char* nextField(char*& cursor) {
 }
 
 void reply(uint8_t sequence, bool ok, const char* detail) {
-  bluetooth.print(ok ? F("ACK|") : F("ERR|"));
-  bluetooth.print(sequence);
-  bluetooth.print('|');
-  bluetooth.println(detail);
+  commandPort.print(ok ? F("ACK|") : F("ERR|"));
+  commandPort.print(sequence);
+  commandPort.print('|');
+  commandPort.println(detail);
 }
 bool parseUint(const char* s, unsigned long minimum, unsigned long maximum, unsigned long &value) {
   if (!s || !*s) return false;
@@ -124,9 +130,9 @@ void processFrame(char* input) {
     if (nextField(ctx)) { reply(idSeq, false, "ARG"); return; }
     for (uint8_t i = 0; i < NOTICE_CAPACITY; ++i)
       if (store.at(i).used) {
-        bluetooth.print(F("ITEM|")); bluetooth.print(idSeq); bluetooth.print('|');
-        bluetooth.print(store.at(i).id); bluetooth.print('|');
-        bluetooth.println(store.at(i).priority);
+        commandPort.print(F("ITEM|")); commandPort.print(idSeq); commandPort.print('|');
+        commandPort.print(store.at(i).id); commandPort.print('|');
+        commandPort.println(store.at(i).priority);
       }
     reply(idSeq, true, "END");
     return;
@@ -169,8 +175,8 @@ void processFrame(char* input) {
 }
 void pollBluetooth() {
   uint8_t budget = 32; // let the scheduler run even during incoming serial bursts
-  while (bluetooth.available() && budget--) {
-    char ch = char(bluetooth.read());
+  while (commandPort.available() && budget--) {
+    char ch = char(commandPort.read());
     if (ch == '\n') {
       if (overflow) reply(0, false, "OVERSIZE");
       else if (invalidByte) reply(0, false, "FORMAT");
@@ -193,7 +199,9 @@ void pollBluetooth() {
 }
 void setup() {
   Serial.begin(9600);
-  bluetooth.begin(9600);
+#ifndef NOTICE_BOARD_SIMULATION
+  commandPort.begin(9600);
+#endif
   lcd.init(); lcd.backlight();
   store.begin();
   selectNext(millis());

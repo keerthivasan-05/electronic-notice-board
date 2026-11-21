@@ -1,7 +1,11 @@
 #include <EEPROM.h>
 #include <cassert>
 #include <iostream>
+#ifdef TEST_WOKWI_SKETCH
+#include "sketch.ino"
+#else
 #include "../firmware/SmartNoticeBoard/SmartNoticeBoard.ino"
+#endif
 
 FakeEEPROM EEPROM;
 SerialPort Serial;
@@ -91,10 +95,10 @@ static void testPersistence() {
 }
 
 static void expectReply(const std::string& request, const std::string& expected) {
-  bluetooth.output.clear();
-  for (unsigned char byte : request) bluetooth.input.push(byte);
-  while (bluetooth.available()) loop();
-  assert(bluetooth.output == expected + "\r\n");
+  commandPort.output.clear();
+  for (unsigned char byte : request) commandPort.input.push(byte);
+  while (commandPort.available()) loop();
+  assert(commandPort.output == expected + "\r\n");
 }
 
 static std::string request(const char* payload, const char* ending = "\n") {
@@ -105,6 +109,19 @@ static std::string request(const char* payload, const char* ending = "\n") {
 
 static void testWireFraming() {
   setup();
+  assert(Serial.output == "Smart notice board ready\r\n");
+  assert(lcd.rows[0] == "NOTICE BOARD    ");
+  assert(lcd.rows[1] == "No active notice");
+  expectReply("@0|PING*B2\n", "ACK|0|PONG");
+  expectReply("@3|ADD|3|2|10|Exam starts at 9AM*01\n", "ACK|3|SAVED");
+  assert(lcd.rows[0] == "ID:003  PRIO:2  ");
+  assert(lcd.rows[1] == "Exam starts at 9");
+  clockMillis += SCROLL_INTERVAL;
+  loop();
+  assert(lcd.rows[1] == "xam starts at 9A");
+  expectReply("@4|DELETE|3*44\n", "ACK|4|DELETED");
+  assert(lcd.rows[1] == "No active notice");
+  clockMillis = 0;
   expectReply("@7|PING*6D\r\n", "ACK|7|PONG");
   expectReply(request("7|PING|"), "ERR|7|ARG");
   expectReply(request("7||CLEAR"), "ERR|0|FORMAT");

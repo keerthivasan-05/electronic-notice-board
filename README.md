@@ -75,6 +75,47 @@ Divider example: UNO D11 -> 1 kΩ -> junction -> HC-05 RXD; junction -> 2 kΩ ->
 8. Try **List notices**, **Board status**, **Delete ID**, and reboot MCU to confirm only TTL=0 items return.
 9. Test reference protocol locally: `python3 tests/protocol_reference.py`.
 
+### Run in Wokwi
+
+Open the [working Arduino Uno simulation](https://wokwi.com/projects/481296808550280193), select **Start the simulation**, and wait for `Smart notice board ready` in the Serial Monitor. Enter commands in the field below the monitor output.
+
+To build a separate Wokwi project from this repository:
+
+1. Open a [new Arduino Uno project](https://wokwi.com/projects/new/arduino-uno) and replace `sketch.ino` and `diagram.json` with the files in `wokwi/`.
+2. Add **LiquidCrystal I2C** in Library Manager, then use `wokwi/libraries.txt` to pin version 1.1.2.
+3. Start the simulation. Use the Serial Monitor in place of the Android Bluetooth connection. Send each command on its own line.
+
+On a fresh simulation, the Serial Monitor prints `Smart notice board ready` and the LCD shows `NOTICE BOARD` above `No active notice`. Use this sequence for a short interview demo.
+
+| Send | Expected result |
+| --- | --- |
+| `@0\|PING*B2` | `ACK\|0\|PONG` |
+| `@3\|ADD\|3\|2\|10\|Exam starts at 9AM*01` | `ACK\|3\|SAVED`. The LCD shows `ID:003  PRIO:2` and scrolls the message. |
+| `@4\|DELETE\|3*44` | `ACK\|4\|DELETED`. On an otherwise empty board, the LCD returns to `No active notice`. |
+
+For the walkthrough, explain that the Serial Monitor sends the same CRC-8-framed commands as the Android app. The Uno validates each frame, updates the notice store, and renders the result on the 16×2 I²C LCD. The 10-minute demo notice is held in RAM. A zero-minute TTL makes a notice permanent in EEPROM.
+
+After editing the firmware, regenerate the web sketch with `python3 wokwi/build_sketch.py > wokwi/sketch.ino`.
+
+Run `bash tests/run_tests.sh` to check the demo sequence against the generated sketch with simulated serial and LCD interfaces.
+
+### Web console
+
+Open the [hosted Smart Notice Board Console](https://smart-notice-board-console.viridpretzel16.chatgpt.site) if you have access to the private deployment. Anyone with the repository can run the same UI locally without installing JavaScript dependencies:
+
+```sh
+python3 -m http.server 8000 --bind 127.0.0.1 --directory web-ui/dist
+```
+
+Open `http://127.0.0.1:8000` in your browser. Keep the Wokwi project in a second tab.
+
+1. In the console, select **Add or update notice**, keep the example values, and click **Generate frame**, then **Copy frame**.
+2. Paste the frame into Wokwi’s Serial Monitor and press Enter. The LCD scrolls the notice and the monitor returns `ACK|<sequence>|SAVED`.
+3. Paste that reply into **Inspect board reply** and verify that the console matches its sequence number to the generated request.
+4. Select **Delete notice** for ID `3` and repeat the round trip. Expect `DELETED` and an empty LCD when no other notices are active.
+
+The console validates notice input, previews the 16×2 display, generates CRC-8/ATM frames, and correlates replies. Copy and paste is the transport between the console and Wokwi for this demo.
+
 ## Directory structure
 
 ```text
